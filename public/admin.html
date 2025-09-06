@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contest Setup</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Contest Setup</h1>
+      <div style="margin-bottom:10px;">
+        <label for="contest-name">Contest Name:</label>
+        <input id="contest-name" style="width:100%;" />
+      </div>
+      <div style="margin-bottom:10px;">
+        <label for="contestants">Contestants (comma separated):</label>
+        <input id="contestants" style="width:100%;" />
+      </div>
+      <div style="margin-bottom:10px;">
+        <label for="categories">Categories (comma separated):</label>
+        <input id="categories" style="width:100%;" />
+      </div>
+      <div style="margin-top:10px; display:flex; gap:10px;">
+        <button id="save" class="btn btn-primary">Save</button>
+        <button id="reset" class="btn">Reset Votes</button>
+      </div>
+      <p id="status" class="pill" style="display:none; margin-top:10px;">Saved!</p>
+    </div>
+  </div>
+
+  <script>
+    const nameInput = document.getElementById('contest-name');
+    const contestantsInput = document.getElementById('contestants');
+    const categoriesInput = document.getElementById('categories');
+    const status = document.getElementById('status');
+
+    fetch('/config').then(r => r.json()).then(cfg => {
+      nameInput.value = cfg.contestName;
+      contestantsInput.value = cfg.candidates.join(', ');
+      categoriesInput.value = cfg.categories.join(', ');
+    });
+
+    document.getElementById('save').onclick = () => {
+      fetch('/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contestName: nameInput.value,
+          candidates: contestantsInput.value.split(',').map(s => s.trim()).filter(Boolean),
+          categories: categoriesInput.value.split(',').map(s => s.trim()).filter(Boolean)
+        })
+      }).then(() => {
+        status.style.display = 'inline-flex';
+        setTimeout(() => (status.style.display = 'none'), 1500);
+      });
+    };
+
+    document.getElementById('reset').onclick = () => {
+      fetch('/reset');
+    };
+  </script>
+</body>
+</html>

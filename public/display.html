@@ -11,21 +11,67 @@
     <div class="card">
       <h1 id="title">Live Results</h1>
       <p>Ratings update in real‑time via WebSockets (Socket.IO).</p>
-      <div style="margin-bottom:10px;">
+      <div style="margin-bottom:10px; display:flex; gap:10px;">
         <button id="reset" class="btn">♻️ Reset</button>
+        <button id="toggle-chart" class="btn">📈 Toggle Chart</button>
       </div>
       <div id="list" class="grid"></div>
+      <div id="chart-container" style="display:none;">
+        <canvas id="chartCanvas"></canvas>
+      </div>
     </div>
     <div class="footer">Tip: open this on a larger screen and share the vote URL.</div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
     const resetBtn = document.getElementById('reset');
     const list = document.getElementById('list');
+    const toggleBtn = document.getElementById('toggle-chart');
+    const chartContainer = document.getElementById('chart-container');
+    let chart;
+    let lastData = null;
 
-    socket.on('tally', ({ contestName, candidates, categories, counts }) => {
+    function updateChart(candidates, categories, counts) {
+      const averages = candidates.map(c => {
+        let totalVotes = 0;
+        let totalScore = 0;
+        categories.forEach(cat => {
+          const arr = counts[c][cat] || [0,0,0,0,0];
+          totalVotes += arr.reduce((a,b)=>a+b,0);
+          totalScore += arr.reduce((s,n,i)=>s+n*(i+1),0);
+        });
+        return totalVotes ? (totalScore / totalVotes).toFixed(2) : 0;
+      });
+
+      if (!chart) {
+        const ctx = document.getElementById('chartCanvas');
+        chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: candidates,
+            datasets: [{
+              label: 'Average Score',
+              data: averages,
+              backgroundColor: 'rgba(34,211,238,0.5)'
+            }]
+          },
+          options: {
+            scales: { y: { beginAtZero: true, max: 5 } }
+          }
+        });
+      } else {
+        chart.data.labels = candidates;
+        chart.data.datasets[0].data = averages;
+        chart.update();
+      }
+    }
+
+    socket.on('tally', (data) => {
+      const { contestName, candidates, categories, counts } = data;
+      lastData = data;
       document.title = contestName + ' – Live Results';
       document.getElementById('title').textContent = contestName + ' Results';
       list.innerHTML = '';
@@ -42,7 +88,19 @@
         div.innerHTML = `<h3>${c}</h3><ul>${items}</ul>`;
         list.appendChild(div);
       });
+      if (chartContainer.style.display !== 'none') {
+        updateChart(candidates, categories, counts);
+      }
     });
+
+    toggleBtn.onclick = () => {
+      const showingChart = chartContainer.style.display !== 'none';
+      chartContainer.style.display = showingChart ? 'none' : 'block';
+      list.style.display = showingChart ? 'grid' : 'none';
+      if (!showingChart && lastData) {
+        updateChart(lastData.candidates, lastData.categories, lastData.counts);
+      }
+    };
 
     resetBtn.onclick = () => socket.emit('reset');
   </script>
