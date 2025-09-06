@@ -3,19 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Live Vote – Cast Your Vote</title>
+  <title>Cast Your Vote</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Cast Your Vote</h1>
-      <p>Tap a button below. The results update instantly on the display page.</p>
-      <div id="buttons" class="grid"></div>
-      <div style="margin-top:10px">
-        <a class="pill" href="/display.html">📊 Open the Live Display</a>
+      <h1 id="title">Cast Your Vote</h1>
+      <p>Rate each entry from 1 (meh) to 5 (🔥).</p>
+      <div style="margin-bottom:10px;">
+        <label for="candidate">Contestant:</label>
+        <select id="candidate"></select>
       </div>
-      <p id="thanks" class="pill" style="display:none; margin-top:10px;">✅ Vote submitted</p>
+      <div id="categories"></div>
+      <div style="margin-top:10px;">
+        <button id="submit" class="btn btn-primary">Submit Vote 🌶️</button>
+      </div>
+      <div style="margin-top:10px;">
+        <a class="pill" href="/display.html">📊 View Live Results</a>
+      </div>
+      <p id="thanks" class="pill" style="display:none; margin-top:10px;">✅ Thanks for voting!</p>
     </div>
     <div class="footer">Demo only — in‑memory votes; resets when the server restarts.</div>
   </div>
@@ -23,25 +30,56 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const buttons = document.getElementById('buttons');
+    const candidateSelect = document.getElementById('candidate');
+    const categoriesDiv = document.getElementById('categories');
     const thanks = document.getElementById('thanks');
+    const selections = {};
+    let categories = [];
 
-    function renderOptions(options) {
-      buttons.innerHTML = '';
-      options.forEach(option => {
-        const btn = document.createElement('button');
-        btn.className = 'btn btn-primary';
-        btn.textContent = option;
-        btn.onclick = () => {
-          socket.emit('cast-vote', { option });
-          thanks.style.display = 'inline-flex';
-          setTimeout(() => (thanks.style.display = 'none'), 1500);
-        };
-        buttons.appendChild(btn);
+    fetch('/config').then(r => r.json()).then(cfg => {
+      document.title = cfg.contestName + ' – Cast Your Vote';
+      document.getElementById('title').textContent = cfg.contestName;
+      cfg.candidates.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        candidateSelect.appendChild(opt);
       });
-    }
+      categories = cfg.categories;
+      categories.forEach(cat => {
+        const div = document.createElement('div');
+        div.className = 'category';
+        const buttons = [1,2,3,4,5].map(n =>
+          `<button type="button" class="rating-btn" data-cat="${cat}" data-val="${n}">${n}</button>`
+        ).join('');
+        div.innerHTML = `<label>${cat}</label><div class="ratings">${buttons}</div>`;
+        categoriesDiv.appendChild(div);
+      });
+    });
 
-    socket.on('tally', ({ options }) => renderOptions(options));
+    categoriesDiv.addEventListener('click', e => {
+      if (!e.target.matches('.rating-btn')) return;
+      const cat = e.target.dataset.cat;
+      const val = Number(e.target.dataset.val);
+      selections[cat] = val;
+      categoriesDiv.querySelectorAll(`.rating-btn[data-cat="${cat}"]`).forEach(btn => {
+        btn.classList.toggle('selected', Number(btn.dataset.val) === val);
+      });
+    });
+
+    document.getElementById('submit').onclick = () => {
+      const candidate = candidateSelect.value;
+      if (!candidate) return;
+      const ratings = {};
+      categories.forEach(cat => {
+        if (selections[cat]) ratings[cat] = selections[cat];
+      });
+      socket.emit('cast-vote', { candidate, ratings });
+      thanks.style.display = 'inline-flex';
+      setTimeout(() => (thanks.style.display = 'none'), 1500);
+      categoriesDiv.querySelectorAll('.rating-btn.selected').forEach(btn => btn.classList.remove('selected'));
+      Object.keys(selections).forEach(k => delete selections[k]);
+    };
   </script>
 </body>
 </html>
