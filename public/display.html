@@ -3,20 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Live Vote – Display</title>
+  <title>Live Results</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Live Results</h1>
-      <p>Votes update in real‑time via WebSockets (Socket.IO).</p>
-      <div style="margin-bottom: 10px;">
+      <h1 id="title">Live Results</h1>
+      <p>Ratings update in real‑time via WebSockets (Socket.IO).</p>
+      <div style="margin-bottom:10px;">
         <button id="reset" class="btn">♻️ Reset</button>
-        <span id="total" class="pill">Total: 0</span>
-      </div>
-      <div class="card">
-        <canvas id="chart"></canvas>
       </div>
       <div id="list" class="grid"></div>
     </div>
@@ -24,51 +20,28 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     const socket = io();
     const resetBtn = document.getElementById('reset');
-    const totalEl = document.getElementById('total');
     const list = document.getElementById('list');
-    let chart;
 
-    function ensureChart(labels, data) {
-      const ctx = document.getElementById('chart').getContext('2d');
-      if (chart) return chart;
-      chart = new Chart(ctx, {
-        type: 'bar',
-        data: { labels, datasets: [{ label: 'Votes', data }] },
-        options: {
-          responsive: true, animation: false,
-          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-          plugins: { legend: { display: false } }
-        }
-      });
-      return chart;
-    }
-
-    function renderList(counts) {
+    socket.on('tally', ({ contestName, candidates, categories, counts }) => {
+      document.title = contestName + ' – Live Results';
+      document.getElementById('title').textContent = contestName + ' Results';
       list.innerHTML = '';
-      Object.entries(counts).forEach(([name, value]) => {
+      candidates.forEach(c => {
         const div = document.createElement('div');
         div.className = 'card';
-        div.innerHTML = '<h3>' + name + '</h3><p>' + value + ' votes</p>';
+        const items = categories.map(cat => {
+          const arr = counts[c][cat] || [0,0,0,0,0];
+          const votes = arr.reduce((a,b)=>a+b,0);
+          const sum = arr.reduce((s,n,i)=>s+n*(i+1),0);
+          const avg = votes ? (sum / votes).toFixed(2) : '0.00';
+          return `<li>${cat}: ${avg} ⭐ (${votes} votes)</li>`;
+        }).join('');
+        div.innerHTML = `<h3>${c}</h3><ul>${items}</ul>`;
         list.appendChild(div);
       });
-    }
-
-    socket.on('tally', ({ options, counts }) => {
-      const labels = options;
-      const data = labels.map(l => counts[l] || 0);
-      const total = data.reduce((a,b)=>a+b,0);
-      totalEl.textContent = 'Total: ' + total;
-
-      const c = ensureChart(labels, data);
-      if (JSON.stringify(c.data.labels) !== JSON.stringify(labels)) c.data.labels = labels;
-      c.data.datasets[0].data = data;
-      c.update('none');
-
-      renderList(counts);
     });
 
     resetBtn.onclick = () => socket.emit('reset');
