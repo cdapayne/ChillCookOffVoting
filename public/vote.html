@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Vote – Cast Your Vote</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Cast Your Vote</h1>
+      <p>Tap a button below. The results update instantly on the display page.</p>
+      <div id="buttons" class="grid"></div>
+      <div style="margin-top:10px">
+        <a class="pill" href="/display.html">📊 Open the Live Display</a>
+      </div>
+      <p id="thanks" class="pill" style="display:none; margin-top:10px;">✅ Vote submitted</p>
+    </div>
+    <div class="footer">Demo only — in‑memory votes; resets when the server restarts.</div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const buttons = document.getElementById('buttons');
+    const thanks = document.getElementById('thanks');
+
+    function renderOptions(options) {
+      buttons.innerHTML = '';
+      options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary';
+        btn.textContent = option;
+        btn.onclick = () => {
+          socket.emit('cast-vote', { option });
+          thanks.style.display = 'inline-flex';
+          setTimeout(() => (thanks.style.display = 'none'), 1500);
+        };
+        buttons.appendChild(btn);
+      });
+    }
+
+    socket.on('tally', ({ options }) => renderOptions(options));
+  </script>
+</body>
+</html>
