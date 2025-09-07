@@ -26,7 +26,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
+    const params = new URLSearchParams(window.location.search);
+    const contestId = params.get('contest') || 'default';
+    const socket = io({ query: { contest: contestId } });
     const resetBtn = document.getElementById('reset');
     const list = document.getElementById('list');
     const toggleBtn = document.getElementById('toggle-chart');

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cast Your Vote</title>
   <link rel="stylesheet" href="/style.css" />
+  <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -25,9 +26,13 @@
         <button id="submit" class="btn btn-primary">Submit Vote 🌶️</button>
       </div>
       <div style="margin-top:10px;">
-        <a class="pill" href="/display.html">📊 View Live Results</a>
+        <a id="results-link" class="pill" href="">📊 View Live Results</a>
       </div>
       <p id="thanks" class="pill" style="display:none; margin-top:10px;">✅ Thanks for voting!</p>
+      <div id="legend" style="margin-top:10px;">
+        <strong>Voted contestants:</strong>
+        <ul id="voted-list"></ul>
+      </div>
     </div>
     <div class="footer">Demo only — in‑memory votes; resets when the server restarts.</div>
   </div>
@@ -35,25 +40,42 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
+    const params = new URLSearchParams(window.location.search);
+    const contestId = params.get('contest') || 'default';
+    const socket = io({ query: { contest: contestId } });
     const candidateSelect = document.getElementById('candidate');
     const categoriesDiv = document.getElementById('categories');
     const thanks = document.getElementById('thanks');
     const shareLink = document.getElementById('share-link');
+    const resultsLink = document.getElementById('results-link');
     const qrCanvas = document.getElementById('qr-code');
+    const votedList = document.getElementById('voted-list');
     const selections = {};
     let categories = [];
 
-    const url = window.location.href;
+    const url = window.location.origin + '/vote.html?contest=' + contestId;
     shareLink.textContent = url;
     shareLink.href = url;
+    resultsLink.href = '/display.html?contest=' + contestId;
     if (window.QRCode) {
       QRCode.toCanvas(qrCanvas, url, { width: 128 }, err => {
         if (err) console.error(err);
       });
     }
 
-    fetch('/config').then(r => r.json()).then(cfg => {
+    const votedKey = 'votedCandidates_' + contestId;
+    const voted = JSON.parse(localStorage.getItem(votedKey) || '[]');
+    function updateLegend () {
+      votedList.innerHTML = '';
+      voted.forEach(c => {
+        const li = document.createElement('li');
+        li.textContent = c;
+        votedList.appendChild(li);
+      });
+    }
+    updateLegend();
+
+    fetch('/config?contest=' + contestId).then(r => r.json()).then(cfg => {
       document.title = cfg.contestName + ' – Cast Your Vote';
       document.getElementById('title').textContent = cfg.contestName;
       cfg.candidates.forEach(c => {
@@ -87,11 +109,18 @@
     document.getElementById('submit').onclick = () => {
       const candidate = candidateSelect.value;
       if (!candidate) return;
+      if (voted.includes(candidate)) {
+        swal('Vote already registered', 'You have already voted for this contestant.', 'info');
+        return;
+      }
       const ratings = {};
       categories.forEach(cat => {
         if (selections[cat]) ratings[cat] = selections[cat];
       });
       socket.emit('cast-vote', { candidate, ratings });
+      voted.push(candidate);
+      localStorage.setItem(votedKey, JSON.stringify(voted));
+      updateLegend();
       thanks.style.display = 'inline-flex';
       setTimeout(() => (thanks.style.display = 'none'), 1500);
       categoriesDiv.querySelectorAll('.rating-btn.selected').forEach(btn => btn.classList.remove('selected'));
