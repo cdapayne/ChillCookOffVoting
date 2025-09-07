@@ -11,6 +11,10 @@
     <div class="card">
       <h1>Contest Setup</h1>
       <div style="margin-bottom:10px;">
+        <label for="contest-id">Contest ID:</label>
+        <input id="contest-id" style="width:100%;" />
+      </div>
+      <div style="margin-bottom:10px;">
         <label for="contest-name">Contest Name:</label>
         <input id="contest-name" style="width:100%;" />
       </div>
@@ -31,22 +35,29 @@
   </div>
 
   <script>
+    const idInput = document.getElementById('contest-id');
     const nameInput = document.getElementById('contest-name');
     const contestantsInput = document.getElementById('contestants');
     const categoriesInput = document.getElementById('categories');
     const status = document.getElementById('status');
 
-    fetch('/config').then(r => r.json()).then(cfg => {
+    const params = new URLSearchParams(window.location.search);
+    const contestId = params.get('contest') || 'default';
+    idInput.value = contestId;
+
+    fetch('/config?contest=' + contestId).then(r => r.json()).then(cfg => {
       nameInput.value = cfg.contestName;
       contestantsInput.value = cfg.candidates.join(', ');
       categoriesInput.value = cfg.categories.join(', ');
     });
 
     document.getElementById('save').onclick = () => {
+      const id = idInput.value.trim() || 'default';
       fetch('/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id,
           contestName: nameInput.value,
           candidates: contestantsInput.value.split(',').map(s => s.trim()).filter(Boolean),
           categories: categoriesInput.value.split(',').map(s => s.trim()).filter(Boolean)
@@ -58,7 +69,8 @@
     };
 
     document.getElementById('reset').onclick = () => {
-      fetch('/reset');
+      const id = idInput.value.trim() || 'default';
+      fetch('/reset?contest=' + id);
     };
   </script>
 </body>
