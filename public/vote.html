@@ -11,6 +11,11 @@
     <div class="card">
       <h1 id="title">Cast Your Vote</h1>
       <p>Rate each entry from 1 (meh) to 5 (🔥).</p>
+      <div id="share" style="margin:10px 0;">
+        Share this vote link:
+        <a id="share-link" href=""></a>
+        <canvas id="qr-code" style="display:block; margin-top:5px; max-width:200px;"></canvas>
+      </div>
       <div style="margin-bottom:10px;">
         <label for="candidate">Contestant:</label>
         <select id="candidate"></select>
@@ -27,14 +32,26 @@
     <div class="footer">Demo only — in‑memory votes; resets when the server restarts.</div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
     const candidateSelect = document.getElementById('candidate');
     const categoriesDiv = document.getElementById('categories');
     const thanks = document.getElementById('thanks');
+    const shareLink = document.getElementById('share-link');
+    const qrCanvas = document.getElementById('qr-code');
     const selections = {};
     let categories = [];
+
+    const url = window.location.href;
+    shareLink.textContent = url;
+    shareLink.href = url;
+    if (window.QRCode) {
+      QRCode.toCanvas(qrCanvas, url, { width: 128 }, err => {
+        if (err) console.error(err);
+      });
+    }
 
     fetch('/config').then(r => r.json()).then(cfg => {
       document.title = cfg.contestName + ' – Cast Your Vote';
