@@ -8,12 +8,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-let contestName = process.env.CONTEST_NAME || 'Chili Cook‑Off';
-let candidates = (process.env.CANDIDATES || 'Chili 1,Chili 2,Chili 3')
+let contestName = process.env.CONTEST_NAME || '🌶️ Chili Cook-Off 🌶️';
+let candidates = (process.env.CANDIDATES || 'Red Hot Chili,Smoky Inferno,Spicy Sensation,Fire Bowl,Chili Champion')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
-let categories = (process.env.CATEGORIES || 'Appearance,Aroma,Consistency,Taste,Spiciness')
+let categories = (process.env.CATEGORIES || 'Appearance,Aroma,Consistency,Taste,Aftertaste')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);

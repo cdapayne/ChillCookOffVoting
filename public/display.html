@@ -9,18 +9,26 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1 id="title">Live Results</h1>
-      <p>Ratings update in real‑time via WebSockets (Socket.IO).</p>
-      <div style="margin-bottom:10px; display:flex; gap:10px;">
-        <button id="reset" class="btn">♻️ Reset</button>
-        <button id="toggle-chart" class="btn">📈 Toggle Chart</button>
+      <h1 id="title"><span class="chili-emoji">🌶️</span> Live Results <span class="chili-emoji">🌶️</span></h1>
+      <p style="text-align: center; font-size: 16px;">🔥 Real-time chili ratings powered by WebSockets 🔥</p>
+      <div style="margin: 20px 0; display:flex; gap:12px; flex-wrap: wrap; justify-content: center;">
+        <button id="reset" class="btn">♻️ Reset Votes</button>
+        <button id="toggle-chart" class="btn">📈 Toggle Chart View</button>
+        <a href="/admin.html" class="btn">⚙️ Setup</a>
+        <a href="/vote.html" class="btn">🗳️ Vote</a>
+      </div>
+      <div id="winner-announcement" style="display:none; margin: 20px 0; padding: 20px; background: linear-gradient(135deg, var(--chili-red), var(--accent)); border-radius: 15px; text-align: center;">
+        <h2 style="margin: 0; color: white; font-size: 24px;">🏆 WINNER 🏆</h2>
+        <p id="winner-name" style="font-size: 28px; font-weight: 800; color: white; margin: 10px 0;"></p>
+        <p style="color: white; margin: 5px 0;">Overall Champion with the highest average score!</p>
       </div>
       <div id="list" class="grid"></div>
-      <div id="chart-container" style="display:none;">
+      <div id="chart-container" style="display:none; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 15px;">
+        <h3 style="text-align: center; color: var(--accent-2); margin-top: 0;">📊 Overall Average Scores</h3>
         <canvas id="chartCanvas"></canvas>
       </div>
     </div>
-    <div class="footer">Tip: open this on a larger screen and share the vote URL.</div>
+    <div class="footer">🌶️ May the spiciest win! Open this on a big screen and share the vote URL! 🌶️</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -46,6 +54,9 @@
         return totalVotes ? (totalScore / totalVotes).toFixed(2) : 0;
       });
 
+      const palette = ['#dc2626', '#ff6b35', '#ff4500', '#ff8c42', '#fbbf24', '#f97316', '#ea580c', '#c2410c'];
+      const colors = candidates.map((_, i) => palette[i % palette.length]);
+
       if (!chart) {
         const ctx = document.getElementById('chartCanvas');
         chart = new Chart(ctx, {
@@ -55,7 +66,9 @@
             datasets: [{
               label: 'Average Score',
               data: averages,
-              backgroundColor: 'rgba(34,211,238,0.5)'
+              backgroundColor: colors,
+              borderColor: colors,
+              borderWidth: 1
             }]
           },
           options: {
@@ -65,6 +78,8 @@
       } else {
         chart.data.labels = candidates;
         chart.data.datasets[0].data = averages;
+        chart.data.datasets[0].backgroundColor = colors;
+        chart.data.datasets[0].borderColor = colors;
         chart.update();
       }
     }
@@ -73,19 +88,58 @@
       const { contestName, candidates, categories, counts } = data;
       lastData = data;
       document.title = contestName + ' – Live Results';
-      document.getElementById('title').textContent = contestName + ' Results';
+      document.getElementById('title').innerHTML = `<span class="chili-emoji">🌶️</span> ${contestName} Results <span class="chili-emoji">🌶️</span>`;
+      
+      // Calculate overall averages and find winner
+      const candidateScores = candidates.map(c => {
+        let totalVotes = 0;
+        let totalScore = 0;
+        categories.forEach(cat => {
+          const arr = counts[c][cat] || [0,0,0,0,0];
+          const votes = arr.reduce((a,b)=>a+b,0);
+          const sum = arr.reduce((s,n,i)=>s+n*(i+1),0);
+          totalVotes += votes;
+          totalScore += sum;
+        });
+        const avg = totalVotes ? (totalScore / totalVotes) : 0;
+        return { name: c, avg, totalVotes };
+      });
+      
+      // Find winner (highest average with at least 1 vote)
+      const winner = candidateScores.filter(s => s.totalVotes > 0).sort((a, b) => b.avg - a.avg)[0];
+      const winnerDiv = document.getElementById('winner-announcement');
+      if (winner) {
+        winnerDiv.style.display = 'block';
+        document.getElementById('winner-name').textContent = `${winner.name} - ${winner.avg.toFixed(2)} ⭐`;
+      } else {
+        winnerDiv.style.display = 'none';
+      }
+      
       list.innerHTML = '';
       candidates.forEach(c => {
         const div = document.createElement('div');
         div.className = 'card';
+        const score = candidateScores.find(s => s.name === c);
+        const overallAvg = score.avg > 0 ? score.avg.toFixed(2) : '0.00';
         const items = categories.map(cat => {
           const arr = counts[c][cat] || [0,0,0,0,0];
           const votes = arr.reduce((a,b)=>a+b,0);
           const sum = arr.reduce((s,n,i)=>s+n*(i+1),0);
           const avg = votes ? (sum / votes).toFixed(2) : '0.00';
-          return `<li>${cat}: ${avg} ⭐ (${votes} votes)</li>`;
+          const emoji = cat === 'Appearance' ? '👁️' : cat === 'Aroma' ? '👃' : cat === 'Consistency' ? '🥄' : cat === 'Taste' ? '👅' : '😋';
+          return `<li>${emoji} <strong>${cat}:</strong> ${avg} ⭐ <span style="color: var(--muted); font-size: 12px;">(${votes} votes)</span></li>`;
         }).join('');
-        div.innerHTML = `<h3>${c}</h3><ul>${items}</ul>`;
+        const isWinner = winner && winner.name === c;
+        const border = isWinner ? 'border: 3px solid gold; box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);' : '';
+        div.innerHTML = `
+          <div style="${border} padding: 10px; border-radius: 15px;">
+            <h3 style="margin-top: 0; font-size: 20px;">${isWinner ? '🏆 ' : ''}${c}${isWinner ? ' 🏆' : ''}</h3>
+            <p style="font-size: 18px; font-weight: 700; color: var(--accent); margin: 10px 0;">
+              Overall: ${overallAvg} ⭐ <span style="font-size: 14px; color: var(--muted);">(${score.totalVotes} total votes)</span>
+            </p>
+            <ul style="margin: 10px 0;">${items}</ul>
+          </div>
+        `;
         list.appendChild(div);
       });
       if (chartContainer.style.display !== 'none') {

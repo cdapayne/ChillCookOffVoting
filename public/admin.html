@@ -9,24 +9,44 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Contest Setup</h1>
-      <div style="margin-bottom:10px;">
-        <label for="contest-name">Contest Name:</label>
-        <input id="contest-name" style="width:100%;" />
+      <h1><span class="chili-emoji">🌶️</span> Chili Cook-Off Setup <span class="chili-emoji">⚙️</span></h1>
+      <p style="text-align: center; color: var(--muted); margin-bottom: 20px;">
+        Configure your chili cook-off competition
+      </p>
+      <div style="margin-bottom:15px;">
+        <label for="contest-name">🏆 Contest Name:</label>
+        <input id="contest-name" style="width:100%;" placeholder="e.g., Annual Chili Championship 2025" />
       </div>
-      <div style="margin-bottom:10px;">
-        <label for="contestants">Contestants (comma separated):</label>
-        <input id="contestants" style="width:100%;" />
+      <div style="margin-bottom:15px;">
+        <label for="contestants">🌶️ Chili Contestants (comma separated):</label>
+        <input id="contestants" style="width:100%;" placeholder="e.g., Red Hot Chili, Smoky Inferno, Spicy Sensation" />
+        <small style="color: var(--muted); font-size: 12px;">Enter the names of all chili entries</small>
       </div>
-      <div style="margin-bottom:10px;">
-        <label for="categories">Categories (comma separated):</label>
-        <input id="categories" style="width:100%;" />
+      <div style="margin-bottom:15px;">
+        <label for="categories">📋 Voting Categories (comma separated):</label>
+        <input id="categories" style="width:100%;" placeholder="e.g., Appearance, Aroma, Consistency, Taste, Aftertaste" />
+        <small style="color: var(--muted); font-size: 12px;">Categories voters will rate (recommended: Appearance, Aroma, Consistency, Taste, Aftertaste)</small>
       </div>
-      <div style="margin-top:10px; display:flex; gap:10px;">
-        <button id="save" class="btn btn-primary">Save</button>
-        <button id="reset" class="btn">Reset Votes</button>
+      <div style="margin-top:20px; display:flex; gap:12px; flex-wrap: wrap;">
+        <button id="save" class="btn btn-primary">💾 Save Configuration</button>
+        <button id="reset" class="btn">🗑️ Reset All Votes</button>
+        <a href="/vote.html" class="btn">🗳️ Vote Page</a>
+        <a href="/display.html" class="btn">📊 Display</a>
       </div>
-      <p id="status" class="pill" style="display:none; margin-top:10px;">Saved!</p>
+      <p id="status" class="pill" style="display:none; margin-top:15px; background: var(--chili-red); color: white; font-weight: 700;">
+        ✅ Configuration saved successfully!
+      </p>
+    </div>
+    <div class="card" style="margin-top: 20px;">
+      <h3 style="color: var(--accent-2); margin-top: 0;">ℹ️ Instructions</h3>
+      <ul style="color: var(--muted); line-height: 1.8;">
+        <li>🌶️ Enter unique names for each chili contestant</li>
+        <li>📋 Categories determine what voters rate (1-5 stars)</li>
+        <li>🔗 Share the Vote Page link or QR code with participants</li>
+        <li>📊 Open Display Page on a big screen to show live results</li>
+        <li>🏆 The winner is calculated by the highest overall average score</li>
+        <li>🗑️ Reset votes to clear all data and start fresh</li>
+      </ul>
     </div>
   </div>
 
